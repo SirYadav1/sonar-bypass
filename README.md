@@ -1,6 +1,6 @@
 # Sonar Bypass
 
-![banner](banner.jpg)
+![banner](banner.png)
 
 A Sonar anti-bot bypass script. It gets a Minecraft account past the verification
 layer and into the real game.
