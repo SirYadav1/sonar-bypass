@@ -1,71 +1,156 @@
-# Sonar Verification — How It Actually Works
+# Sonar Verification — The Full Walkthrough
 
-Sonar is an anti-bot layer that sits in front of a Minecraft server. Before a real
-player is let into the game, Sonar puts the connection through a set of checks.
-If any check fails, the connection is dropped and you never reach the lobby.
+This is the complete notes on how we got past Sonar. Every stage is written out
+with the exact packets we send and the byte values that matter. The script that
+does all of this is verify-pass.js — read that alongside this document.
 
-This document explains what Sonar does on the wire so you can build something that
-passes it. Everything below comes from watching real packet captures and from
-running test clients against Sonar-protected servers.
-
-
-## The Big Picture
-
-When you connect, you are NOT talking to the real Minecraft server right away.
-You are talking to Sonar. Sonar speaks the same Minecraft protocol, but instead of
-spawning you in the world, it runs a scripted verification sequence. Only after
-that sequence completes does Sonar hand you off to the backend server.
-
-The handoff is done with a `start_configuration` packet. That packet tells the
-client "we are done verifying, now go through config again and join the real game."
-If your client does not answer that packet correctly, you get kicked.
+Everything here came from watching real traffic. We ran the bot against CubixMC
+and against two private Sonar servers we control, and we used a packet logger mod
+plus a debug build of the Sonar proxy to see what was actually on the wire. Without
+those two tools we would have been guessing.
 
 
-## What Sonar Checks
+## The Connection Starts
 
-Sonar is modular. Each check is a "verification" and they run one after another.
-From the captures and from the plugin source, the main ones are:
+You connect with minecraft-protocol, version 26.1, auth off, brand vanilla. The
+handshake and login go through normally. After login success, Sonar does not drop
+you into the world — it runs a config phase first.
 
-1. Login check — confirms you completed the normal login handshake.
-2. Gravity check — watches your player entity fall and land. It expects real
-   physics behavior, not a frozen client.
-3. Protocol check — sends custom packets and expects specific replies. This is
-   where most bots fail because the packet IDs are not in the standard protocol docs.
-4. Vehicle check — spawns a boat or minecart and expects you to ride it correctly.
-5. Finish — if all of the above pass, Sonar lets you into the real server.
+In the config phase Sonar sends registry_data. The moment we see that packet we
+send two things on the raw socket:
 
+- client_information (packet id 0) with locale en_us, view distance 10, and the
+  usual skin-part bitmask 0x7f.
+- brand (packet id 2) about 30ms later, just the string "vanilla".
 
-## Why Most Bots Fail
-
-The protocol check is the killer. Sonar sends packets with IDs that the standard
-minecraft-protocol library does not decode. If you only use the high-level library
-calls, those packets are invisible to you and you never reply. Sonar then assumes
-you are a bot and drops you.
-
-The fix is to read the raw socket yourself. Parse the packet ID by hand, and when
-you see the unknown IDs, send the exact reply Sonar expects. That is what
-verify-pass.js does — it hooks the raw socket and handles the packets the library
-cannot see.
+If you do not send these, Sonar never moves you forward.
 
 
-## How We Tested This
+## Resource Pack
 
-We ran verify-pass.js against three different setups:
+Sonar pushes a resource pack. The client has to answer in three steps, and the
+timing matters:
 
-- CubixMC (play.cubixmc.fun) — a public server that uses CubixProxy + Sonar-style checks.
-- Two private Sonar test servers we controlled — used to watch the verification
-  sequence in isolation without rate limits.
-- Our own VPS with a rotating IP — used to confirm the script works from a clean address.
+- send ACCEPTED right away
+- send DOWNLOADED after ~300ms
+- send LOADED after ~1500ms more
 
-On all three, the same approach worked: raw socket parsing plus correct replies
-to the hidden protocol packets.
+If you send LOADED instantly, Sonar thinks the pack was never fetched and fails
+you. The script does this with the delays above.
 
 
-## The Debugging Plugin
+## Finish Config
 
-To figure out what Sonar was sending, we built a small debugging plugin for the
-Sonar proxy itself (source in resources/sonar-debug-plugin). It logs every packet
-Sonar sends during verification, including the ones with non-standard IDs. That
-plugin is what told us the exact reply bytes for the protocol and vehicle stages.
+When Sonar sends finish_configuration, we reply with an empty packet (id 3) and
+flip into PLAY state. From here every packet is handled by reading the raw socket,
+because some of the IDs Sonar uses are not decoded by the library.
 
-See main.md for the stage-by-stage walkthrough and the fixes for each error we hit.
+
+## Stage 1 — Gravity (the teleport priming)
+
+Sonar teleports your player twice to set up a fall. The first teleport gives y1,
+the second gives y2. We record both, then compute spawnY = y1 + y2.
+
+Then we send the priming position packets. This part is easy to get wrong:
+
+- priming #1: position at spawnY exactly, with tick_end after it.
+- priming #2: position at spawnY + 0.0001
+- priming #3: position at spawnY exactly again
+
+The reason the second one is offset by 0.0001 is that Sonar deduplicates identical
+frames. If all three priming packets are byte-for-byte the same, Sonar ignores them
+and the gravity check never completes. The 0.0001 makes the bytes differ but the
+motion still reads as "about to fall".
+
+
+## Stage 2 — Gravity (the fall)
+
+After the priming, we start a loop. Each tick (50ms) we apply gravity:
+
+  dy = (dy - 0.08) * 0.98
+  y = y + dy
+
+We send the new position plus tick_end every tick. After 8 ticks we send the
+landing packet: position at (spawnY - 4) + blockHeight, with onGround = true.
+
+blockHeight comes from the multi_block_change packet (id 84). That packet carries
+a stateId, and we map known stateIds to their heights:
+
+  9451 -> 0.75    12582 -> 0.1875   9473 -> 0.8125
+  11295 -> 0.375   9984 -> 1.5      13399 -> 0.5      12896 -> 0.0625
+
+Get the height wrong and you "land" in mid-air and the check fails. If the stateId
+is not in our map we default to 0.75.
+
+
+## Stage 3 — Protocol (the hidden packets)
+
+This is where almost every bot dies. Sonar sends packets with IDs that the standard
+library does not decode. We catch them on the raw socket and reply by hand:
+
+- clientbound transaction (id 61): read the int32 id, reply serverbound transaction
+  (id 0x2d) with the same id. Only reply once per id — track lastTx so we do not
+  echo the same one twice.
+- swing animation (id 2): reply with animation (id 0x3f), body varint 0. This marks
+  the protocol stage done.
+- held_item_slot (id 105): echo the slot back as a short with packet id 0x35.
+
+One trap: minecraft-protocol also tries to auto-reply to pong, transaction, brand,
+keepalive and finish_configuration. We override client.write to swallow those, so
+only our raw handler answers. If both the library and our handler reply, Sonar gets
+two answers and drops the connection.
+
+
+## Stage 4 — Vehicle (boat then minecart)
+
+Once the protocol stage is done, Sonar's keepalives drive a vehicle state machine.
+The phases are:
+
+  WAITING -> IN_BOAT -> AIR_BOAT -> IN_MINECART -> AIR_MINECART -> done
+
+For each vehicle (boat first, then minecart) we send:
+
+- 3 VehicleMove packets (id 0x22) with the Y drifting down by 0.04 per packet. The
+  drift comes from the first teleport Y (telY1). This mimics boat gravity.
+- 3 rounds, spaced 150ms apart, of: PaddleBoat (id 0x23, bytes 01 01), Rotation
+  (id 0x20, zero floats), and PlayerInput (id 0x2b, byte 01).
+
+Between vehicles, on the AIR phases, we send one plain position packet so the
+client is not frozen. When the minecart phase finishes, Sonar fires
+finishVerification and the connection is let through.
+
+
+## Keepalives Throughout
+
+Every keepalive is answered. In config state we reply with packet id 4. In play
+state we reply with packet id 0x1c, using the same 8-byte id Sonar sent (it can be
+a long, so we write it as BigInt64). The protocol-stage keepalive also kicks the
+vehicle state machine forward.
+
+
+## What We Tested On
+
+- CubixMC (play.cubixmc.fun) — public server running CubixProxy with Sonar-style
+  checks in front of the lobby.
+- Two private Sonar servers we run ourselves — used to watch the verification in
+  isolation without hitting rate limits.
+- A VPS with a rotating address — used to confirm the script works from a fresh IP.
+
+All three passed with the same code. CubixMC rate-limits per IP, so each attempt
+there needs a new address; the private servers do not, which is how we debugged the
+packet timing.
+
+
+## The Tools That Made This Possible
+
+resources/sonar-debug-plugin is a build of the Sonar proxy with packet logging
+turned on inside the verification handler. It prints every packet Sonar sends during
+a check, including the ones with non-standard IDs. That is how we learned the exact
+reply bytes for the protocol and vehicle stages.
+
+resources/packet-logger-2.0.4.jar is a Fabric mod that logs packets from inside a
+real Minecraft client. We ran a legit client through CubixMC verification with it
+installed, then read the log to copy the exact bytes a human player sends. Those
+bytes are what verify-pass.js reproduces.
+
+See main.md for the short stage list and the fix for each error we hit along the way.

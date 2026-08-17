@@ -1,8 +1,11 @@
 # Sonar Bypass — Stage by Stage
 
-This is the practical guide. Each verification stage is listed with what Sonar
-expects and what broke when we first tried it. The fixes here are what make
-verify-pass.js work.
+This is the short practical guide — each stage with what broke and the fix. For the
+full packet-by-packet write-up with exact byte values, read research.md. That file
+explains how Sonar verification actually works on the wire and how we got every
+stage to pass.
+
+The fixes here are what make verify-pass.js work.
 
 
 ## Stage 1 — Login
