@@ -27,19 +27,6 @@ send two things on the raw socket:
 If you do not send these, Sonar never moves you forward.
 
 
-## Resource Pack
-
-Sonar pushes a resource pack. The client has to answer in three steps, and the
-timing matters:
-
-- send ACCEPTED right away
-- send DOWNLOADED after ~300ms
-- send LOADED after ~1500ms more
-
-If you send LOADED instantly, Sonar thinks the pack was never fetched and fails
-you. The script does this with the delays above.
-
-
 ## Finish Config
 
 When Sonar sends finish_configuration, we reply with an empty packet (id 3) and

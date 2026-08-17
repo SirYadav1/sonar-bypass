@@ -19,16 +19,12 @@ the config packet IDs will not match and you will silently fail later.
 
 ## Stage 2 — Config Handshake
 
-After login success, Sonar sends a config phase: registry data, resource pack,
-client information request. You must answer:
+After login success, Sonar sends a config phase: registry data and a client
+information request. You must answer:
 
 - client_information (settings) — send locale, view distance, skin parts.
 - brand — send "vanilla" or any string.
-- resource_pack — reply ACCEPTED, then DOWNLOADED, then LOADED after a short delay.
 - finish_configuration — reply empty, this moves you to PLAY.
-
-Fix note: the resource pack must be answered in three steps with delays. If you
-send LOADED instantly, Sonar thinks the pack was never fetched and fails you.
 
 
 ## Stage 3 — Gravity
@@ -89,7 +85,6 @@ check fails. Match the motion chain from the capture.
 | Silent fail at protocol stage | Library hides id 53 | Parse raw socket, reply transaction yourself |
 | Gravity never completes | Identical priming frames | Make byte values differ between priming packets |
 | Double-reply disconnect | Both raw + library answer | Block library auto-replies for those packets |
-| Resource pack fail | LOADED sent too fast | Add 300ms + 1500ms delays between ACCEPTED/DOWNLOADED/LOADED |
 
 
 ## The Packet Logger
