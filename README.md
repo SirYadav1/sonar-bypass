@@ -1,13 +1,13 @@
-# CubixMC Sonar Pass
+# Sonar Bypass
 
-A verification script that gets a Minecraft account past the Sonar anti-bot layer
-and into the real game on CubixMC (play.cubixmc.fun).
+A Sonar anti-bot bypass script. It gets a Minecraft account past the verification
+layer and into the real game.
 
 ## What is in here
 
-- `verify-pass.js` — the script. Run it and it handles the full handshake,
-  logs in, and proves spawn with a chat message.
-- `research.md` — how Sonar verification works on the wire.
+- `verify-pass.js` — the script. Run it and it handles the full handshake, logs in,
+  and proves spawn with a chat message.
+- `research.md` — how Sonar verification works on the wire, written out packet by packet.
 - `main.md` — stage-by-stage bypass notes and the fixes for each error we hit.
 - `resources/` — the debugging plugin we built for the Sonar proxy, plus the
   packet-logger mod we used to capture real client traffic.
@@ -18,16 +18,16 @@ and into the real game on CubixMC (play.cubixmc.fun).
 USERNAME=your_account PASS=your_password node verify-pass.js
 ```
 
-Use a clean IP per attempt. On CubixMC you get a few tries per address before it
-asks you to wait, so rotate the address between runs.
+Use a clean IP per attempt. The servers we tested on rate-limit per address, so
+rotate the address between runs.
 
 ## What we tested on
 
-- CubixMC (public server, CubixProxy + Sonar-style checks)
-- Two private Sonar test servers we control
-- A VPS with rotating addresses
+- cubixmc — an Indian server running Sonar in front of its lobby
+- poormc — another Indian server using the same anti-bot layer
+- two private Sonar test servers we control
 
-All three passed with the same approach.
+All of them passed with the same approach.
 
 ## The tooling
 

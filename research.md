@@ -1,13 +1,14 @@
 # Sonar Verification — The Full Walkthrough
 
-This is the complete notes on how we got past Sonar. Every stage is written out
-with the exact packets we send and the byte values that matter. The script that
-does all of this is verify-pass.js — read that alongside this document.
+This is a Sonar bypass script we put together, and these are the full notes on how
+it gets past the anti-bot layer. Every stage is written out with the exact packets
+we send and the byte values that matter. The script that does all of this is
+verify-pass.js — read that alongside this document.
 
-Everything here came from watching real traffic. We ran the bot against CubixMC
-and against two private Sonar servers we control, and we used a packet logger mod
-plus a debug build of the Sonar proxy to see what was actually on the wire. Without
-those two tools we would have been guessing.
+We built this by watching real traffic. We ran the bot against a couple of Indian
+servers (cubixmc, poormc) and against two private Sonar servers we control, and we
+used a packet logger mod plus a debug build of the Sonar proxy to see what was
+actually on the wire. Without those two tools we would have been guessing.
 
 
 ## The Connection Starts
@@ -130,15 +131,16 @@ vehicle state machine forward.
 
 ## What We Tested On
 
-- CubixMC (play.cubixmc.fun) — public server running CubixProxy with Sonar-style
-  checks in front of the lobby.
-- Two private Sonar servers we run ourselves — used to watch the verification in
-  isolation without hitting rate limits.
-- A VPS with a rotating address — used to confirm the script works from a fresh IP.
+This is a Sonar bypass script we built and verified against a few different setups:
 
-All three passed with the same code. CubixMC rate-limits per IP, so each attempt
-there needs a new address; the private servers do not, which is how we debugged the
-packet timing.
+- cubixmc — an Indian Minecraft server that runs Sonar in front of its lobby.
+- poormc — another Indian server using the same anti-bot layer.
+- two private Sonar servers we run ourselves — used to watch the verification in
+  isolation without hitting rate limits.
+
+All of them passed with the same code. The public servers rate-limit per IP, so
+each attempt there needs a fresh address; the private servers do not, which is how
+we debugged the packet timing.
 
 
 ## The Tools That Made This Possible

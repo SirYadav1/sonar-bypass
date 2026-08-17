@@ -28,7 +28,8 @@ every packet to a log file with its real ID and the current connection state.
 Log location: .minecraft/logs/packet-log-YYYY-MM-DD.txt (one file per day)
 
 Each line is tagged with the state it happened in (login / config / play) so you
-can tell which phase a packet belongs to. We ran a real client through CubixMC
+can tell which phase a packet belongs to. We ran a real client through a Sonar-protected
+server
 verification with this mod installed, then read the log to copy the exact reply
 bytes a legitimate player sends. Those bytes are what verify-pass.js reproduces.
 

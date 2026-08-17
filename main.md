@@ -13,7 +13,7 @@ The fixes here are what make verify-pass.js work.
 Sonar waits for the normal login flow: TCP connect, handshake, login start,
 compression, login success. Nothing special here, the standard library handles it.
 
-Fix note: use `version: '26.1'` for CubixMC. If you use a generic version string
+Fix note: use `version: '26.1'` for the servers we target. If you use a generic version string
 the config packet IDs will not match and you will silently fail later.
 
 
@@ -106,6 +106,7 @@ see which phase a packet belongs to.
 
 ## How We Verified
 
-We tested on CubixMC and on two private Sonar servers we run. The same raw-socket
+We tested on a couple of Indian servers (cubixmc, poormc) and on two private Sonar
+servers we run. The same raw-socket
 approach passed all three. The debugging plugin in resources/ was the key tool —
 without it we were guessing the protocol packet IDs.
