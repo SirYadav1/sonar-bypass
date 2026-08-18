@@ -1,0 +1,28 @@
+{
+  "name": "sonar-bypass",
+  "version": "1.0.0",
+  "description": "Sonar anti-bot verification bypass for Minecraft — working 2.1.x sonar bypass script, packet logger and debug proxy. Tested on cubixmc and poormc.",
+  "main": "verify-pass.js",
+  "scripts": {
+    "start": "node verify-pass.js"
+  },
+  "keywords": [
+    "sonar",
+    "sonar-bypass",
+    "anti-bot",
+    "antibot",
+    "minecraft",
+    "minecraft-bot",
+    "bypass",
+    "verification",
+    "minecraft-protocol",
+    "bot",
+    "packet",
+    "reverse-engineering",
+    "exploit",
+    "cubixmc",
+    "poormc"
+  ],
+  "license": "MIT",
+  "author": "SirYadav"
+}
