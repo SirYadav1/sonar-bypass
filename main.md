@@ -23,7 +23,8 @@ After login success, Sonar sends a config phase: registry data and a client
 information request. You must answer:
 
 - client_information (settings) — send locale, view distance, skin parts.
-- brand — send "vanilla" or any string.
+- brand — send "vanilla" or any string, right away. Send it before you
+  reply to finish_configuration. Do not add a delay.
 - finish_configuration — reply empty, this moves you to PLAY.
 
 

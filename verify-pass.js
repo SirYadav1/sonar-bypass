@@ -196,7 +196,10 @@ client.on('packet', (data, meta) => {
   if (name === 'registry_data' && !sentSettings) {
     sentSettings = true
     sendRaw(0, buildClientInformation())
-    setTimeout(() => sendRaw(2, buildBrand()), 30)
+    // Send brand immediately. Sonar checks the brand as soon as it gets the
+    // finish_configuration reply, so any delay here can make us fail with
+    // "didn't send client brand" (issue #1).
+    sendRaw(2, buildBrand())
     console.log('[+] settings+brand sent')
   }
 

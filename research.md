@@ -22,7 +22,9 @@ send two things on the raw socket:
 
 - client_information (packet id 0) with locale en_us, view distance 10, and the
   usual skin-part bitmask 0x7f.
-- brand (packet id 2) about 30ms later, just the string "vanilla".
+- brand (packet id 2) right after the settings packet, just the string
+  "vanilla". Do not delay it. The brand must reach the server before you
+  reply to finish_configuration.
 
 If you do not send these, Sonar never moves you forward.
 
