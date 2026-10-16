@@ -83,3 +83,8 @@ This targets **Sonar 2.1.x**, which uses the same verification flow (login → g
 ## **License**
 
 MIT — see [LICENSE](LICENSE).
+
+Contact
+
+- Telegram: "@SirYadav" (https://t.me/SirYadav)
+- Gmail: "sundramy807@gmail.com" (mailto:sundramy807@gmail.com)
